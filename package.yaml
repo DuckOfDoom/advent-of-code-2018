@@ -4,7 +4,10 @@ ghc-options:
 dependencies:
 - base >= 4.7 && < 5
 - protolude
+- lens
 - text
+- mtl
+- unordered-containers
 
 default-extensions:
 - NoImplicitPrelude
@@ -12,9 +15,10 @@ default-extensions:
 - LambdaCase
 - PartialTypeSignatures
 - RecordWildCards
+- TemplateHaskell
 
 executables:
-  duckbot-exe:
+  advent-of-code-exe:
     main:                Main.hs
     source-dirs:         src
     ghc-options:
