@@ -1,8 +1,9 @@
 module Day1
+( day1 )
 where
 
 import           Prelude             (read)
-import           Protolude
+import      Protolude
 import           Utils
 import qualified Data.Text           as T
 import Control.Lens
@@ -22,7 +23,7 @@ day1 = do
   input2 <- T.lines <$> readFile "input_day1_2.txt"
   let answer1 = showT $ calculateAnswer1 input1
       answer2 = showT $ calculateAnswer2 input2
-  pure (mconcat [answer1, " ", answer2])
+  pure (mconcat [answer1, ", " , answer2])
 
 calculateAnswer1 :: [Text] -> Int
 calculateAnswer1 = foldl (\res str -> parseFunc str $ res) 0
@@ -46,10 +47,9 @@ calculateAnswer2 input = fst $ runState (calcWithState (cycle input)) (PuzzleSta
           let 
             newCurrent = parseFunc strFunc $ st ^. current 
           in 
-            trace (showT newCurrent) $
             PuzzleState
             { _current = newCurrent
-            , _passed = modifyOrAdd newCurrent (\v -> v + 1) 1 (st ^. passed)
+            , _passed = modifyOrAdd newCurrent (+1) 1 (st ^. passed)
             }
 
         checkPassedTwice :: HM.HashMap Int Int -> Maybe Int
@@ -58,7 +58,7 @@ calculateAnswer2 input = fst $ runState (calcWithState (cycle input)) (PuzzleSta
          case res of 
           (k, _) -> Just k
 
-    calcWithState [] = undefined
+    calcWithState [] = pure 0
 
 parseFunc :: Text -> (Int -> Int)
 parseFunc = convert . T.unpack
