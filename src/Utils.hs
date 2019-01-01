@@ -14,4 +14,25 @@ modifyOrAdd ::(Eq k, Hashable k) => k -> (v -> v) -> v -> HashMap k v -> HashMap
 modifyOrAdd key func value hmap 
   | HM.member key hmap = HM.adjust func key hmap
   | otherwise = HM.insert key value hmap
-  
+
+-- makes pairs of all non-equal elements in a list.
+-- e.g. mkParis "abc" = [('a','b'),('a','c'),('b','a'),('b','c'),('c','a'),('c','b')] 
+mkPairsSelf :: (Eq a) => [a] -> [(a, a)]
+mkPairsSelf l = concatMap (\e -> mkPairs' e l) l 
+  where
+    mkPairs' :: (Eq a) => a -> [a] -> [(a,a)]
+    mkPairs' k (y:ys) = 
+      if k == y 
+        then 
+          mkPairs' k ys
+        else
+          (k, y) : mkPairs' k ys
+    mkPairs' _ [] = []
+    
+-- same as above but with two different lists and with duplicates
+mkPairs :: (Eq a) => [a] -> [a] -> [(a, a)]
+mkPairs x = concatMap (\e -> mkPairs' e x)
+  where
+    mkPairs' :: (Eq a) => a -> [a] -> [(a,a)]
+    mkPairs' k (y:ys) = (k, y) : mkPairs' k ys
+    mkPairs' _ [] = []

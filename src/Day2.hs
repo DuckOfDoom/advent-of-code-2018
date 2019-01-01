@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 
 module Day2
--- ( day2 )
+( day2 )
 where
 
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text           as T 
 import           Protolude
-import           Utils
+import qualified Utils
 import           Control.Lens
 
 data Count = None | Two | Three | Both
@@ -32,11 +32,11 @@ day2 = do
   let 
     answer1 = (calcChecksum . calcWordsCount) input1 
 
-    pairs = mkPairs (map T.unpack input1) -- convert input to a list of pairs to check for equality
+    pairs = Utils.mkPairsSelf (map T.unpack input1) -- convert input to a list of pairs to check for equality
     matchingStates = map (\p -> runState (findMatch p) defaultState) pairs
     answer2 = fmap (^. matchingChars) (find (\st -> st ^. diffCount == 1) (map snd matchingStates))
   pure $ mconcat
-    [ showT answer1
+    [ Utils.showT answer1
     , ", "
     , T.pack $ fromMaybe "NO ANSWER" answer2
     ] 
@@ -51,7 +51,7 @@ calcChecksum hm =
     twosCount * threesCount
 
 calcWordsCount :: [Text] -> HashMap Count Int
-calcWordsCount = foldl (\hm t -> (modifyOrAdd (calcCount t) (+1) 1 hm)) HM.empty
+calcWordsCount = foldl (\hm t -> (Utils.modifyOrAdd (calcCount t) (+1) 1 hm)) HM.empty
   where
     calcCount :: Text -> Count
     calcCount x
@@ -64,21 +64,8 @@ calcWordsCount = foldl (\hm t -> (modifyOrAdd (calcCount t) (+1) 1 hm)) HM.empty
         hasThrees = any (\(_, c) -> c == 3) (countsMap x)
         countsMap s = HM.toList (fillMap (T.unpack s))
         fillMap :: [Char] -> HashMap Char Integer
-        fillMap = foldl (\hm ch -> (modifyOrAdd ch (+1) 1 hm)) HM.empty 
+        fillMap = foldl (\hm ch -> (Utils.modifyOrAdd ch (+1) 1 hm)) HM.empty 
 
--- makes pairs of all non-equal  elements in a list.
--- e.g. mkParis "abc" = [('a','b'),('a','c'),('b','a'),('b','c'),('c','a'),('c','b')] 
-mkPairs :: (Eq a) => [a] -> [(a, a)]
-mkPairs l = concatMap (\e -> mkPairs' e l) l 
-  where
-    mkPairs' :: (Eq a) => a -> [a] -> [(a,a)]
-    mkPairs' k (y:ys) = 
-      if k == y 
-        then 
-          mkPairs' k ys
-        else
-          (k, y) : mkPairs' k ys
-    mkPairs' _ [] = []
 
 findMatch :: ([Char], [Char]) -> State MatchState ()
 findMatch (a@(x:xs), b@(y:ys))

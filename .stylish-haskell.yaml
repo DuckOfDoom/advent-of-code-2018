@@ -188,3 +188,6 @@ language_extensions:
   - NoImplicitPrelude
   - OverloadedStrings
   - LambdaCase
+  - PartialTypeSignatures
+  - RecordWildCards
+  - TemplateHaskell
