@@ -6,10 +6,7 @@ where
 
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import           Data.HashSet        (HashSet)
 import qualified Data.HashSet        as HS
-
-import Data.List (intersect)
 
 import qualified Data.Text as T
 import qualified Utils
@@ -49,11 +46,11 @@ type PointsMap = HashMap Point Int
 
 findIntersectingPoints :: [Claim] -> State ([Claim], PointsMap) ()
 findIntersectingPoints (x:xs) = do
-  (list, hMap) <- get
+  (l, m) <- get
   let
-    newMap = addPointsToMap hMap x
+    newM = addPointsToMap m x
     in
-    put (list, newMap)
+    put (l, newM)
   findIntersectingPoints xs
     where
       addPointsToMap :: PointsMap -> Claim -> PointsMap
@@ -61,12 +58,17 @@ findIntersectingPoints (x:xs) = do
 
 -- after we fill the map, remove all claims from list that have points with 2 or more intersections
 findIntersectingPoints [] = do
-  (list, hMap) <- get
+  (l, m) <- get
   let
-    pointsWithoutIntersections = HS.fromList $ map fst (filter (\(_, count) -> count <= 1) (HM.toList hMap))
-    newList = filter (\claim -> (all (\p -> HS.member p pointsWithoutIntersections) (getPoints claim))) list
+    pointsWithoutIntersections = HS.fromList $ map fst (filter (\(_, count) -> count <= 1) (HM.toList m))
+    allPointsDontOverlap :: Claim -> Bool
+    allPointsDontOverlap claim = 
+      let points = getPoints claim
+      in
+         all (\p -> HS.member p pointsWithoutIntersections) points
+    newL = filter allPointsDontOverlap l
     in
-    put (newList, hMap)
+    put (newL, m)
 
 -- #1 @ 1,3: 4x4
 parseClaim :: Text -> Claim
@@ -96,11 +98,3 @@ getPoints c = let
   in Utils.mkPairs
     [startX .. endX]
     [startY .. endY]
-
--- Is the point inside the claimed area?
-hasPoint :: Claim -> Point -> Bool
-hasPoint c (x, y) =
-  x > c ^. offsetX &&
-  x <= c ^. offsetX + c ^. sizeX &&
-  y > c ^. offsetY &&
-  y <= c ^. offsetY + c ^. sizeY

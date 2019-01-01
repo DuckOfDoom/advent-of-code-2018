@@ -2,12 +2,11 @@ module Day1
 ( day1 )
 where
 
-import           Prelude             (read)
+import           Control.Lens
+import qualified Data.Text    as T
+import           Prelude      (read)
 import           Protolude
-import           Utils
-import Control.Lens
-import qualified Data.Text           as T
-
+import qualified Utils
 import qualified Data.HashMap.Strict as HM
 
 data PuzzleState = PuzzleState
@@ -21,8 +20,8 @@ day1 :: IO Text
 day1 = do
   input1 <- T.lines <$> readFile "input_day1_1.txt"
   input2 <- T.lines <$> readFile "input_day1_2.txt"
-  let answer1 = showT $ calculateAnswer1 input1
-      answer2 = showT $ calculateAnswer2 input2
+  let answer1 = Utils.showT $ calculateAnswer1 input1
+      answer2 = Utils.showT $ calculateAnswer2 input2
   pure (mconcat [answer1, ", " , answer2])
 
 calculateAnswer1 :: [Text] -> Int
@@ -36,32 +35,32 @@ calculateAnswer2 input = fst $ runState (calcWithState (cycle input)) (PuzzleSta
       st <- get
       case checkPassedTwice (st ^. passed) of
         Just a -> pure a
-        Nothing -> do 
+        Nothing -> do
           put (updateState x st)
-          calcWithState xs 
+          calcWithState xs
 
-      where 
+      where
         updateState :: Text -> PuzzleState -> PuzzleState
-        updateState strFunc st = 
-          let 
-            newCurrent = parseFunc strFunc $ st ^. current 
-          in 
+        updateState strFunc st =
+          let
+            newCurrent = parseFunc strFunc $ st ^. current
+          in
             PuzzleState
             { _current = newCurrent
-            , _passed = modifyOrAdd newCurrent (+1) 1 (st ^. passed)
+            , _passed = Utils.modifyOrAdd newCurrent (+1) 1 (st ^. passed)
             }
 
         checkPassedTwice :: HM.HashMap Int Int -> Maybe Int
-        checkPassedTwice hm = do 
+        checkPassedTwice hm = do
          res <- find (\(_, v) -> v >= 2) (HM.toList hm)
-         case res of 
+         case res of
           (k, _) -> Just k
 
     calcWithState [] = pure 0
 
 parseFunc :: Text -> (Int -> Int)
 parseFunc = convert . T.unpack
-    where 
+    where
       convert (s:xs) = case s of
         '+' -> (+ (read xs :: Int))
         '-' -> (subtract (read xs :: Int))
