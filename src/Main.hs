@@ -2,7 +2,7 @@ module Main where
 
 import Protolude
 
-import Day1  
+import Day1
 import Day2
 
 import Data.Text as T

@@ -18,7 +18,7 @@ default-extensions:
 - TemplateHaskell
 
 executables:
-  advent-of-code-exe:
+  advent-of-code:
     main:                Main.hs
     source-dirs:         src
     ghc-options:

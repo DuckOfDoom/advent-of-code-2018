@@ -3,10 +3,10 @@ module Day1
 where
 
 import           Prelude             (read)
-import      Protolude
+import           Protolude
 import           Utils
-import qualified Data.Text           as T
 import Control.Lens
+import qualified Data.Text           as T
 
 import qualified Data.HashMap.Strict as HM
 
@@ -26,7 +26,7 @@ day1 = do
   pure (mconcat [answer1, ", " , answer2])
 
 calculateAnswer1 :: [Text] -> Int
-calculateAnswer1 = foldl (\res str -> parseFunc str $ res) 0
+calculateAnswer1 = foldl (flip parseFunc) 0
 
 calculateAnswer2 :: [Text] -> Int
 calculateAnswer2 input = fst $ runState (calcWithState (cycle input)) (PuzzleState 0 HM.empty)
@@ -41,7 +41,6 @@ calculateAnswer2 input = fst $ runState (calcWithState (cycle input)) (PuzzleSta
           calcWithState xs 
 
       where 
-
         updateState :: Text -> PuzzleState -> PuzzleState
         updateState strFunc st = 
           let 

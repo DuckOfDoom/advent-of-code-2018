@@ -9,17 +9,37 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Text           as T 
 import           Protolude
 import           Utils
+import           Control.Lens
 
 data Count = None | Two | Three | Both
   deriving (Show, Eq, Generic)
 
 instance Hashable Count
 
+data MatchState = MatchState 
+  { _matchingChars :: [Char] 
+  , _diffCount :: Int
+  }
+  deriving Show
+
+defaultState :: MatchState
+defaultState = MatchState [] 0
+makeLenses ''MatchState
+
 day2 :: IO Text
 day2 = do
   input1 <- T.lines <$> readFile "input_day2_1.txt"
-  putStrLn $ showT $ calcWordsCount input1 
-  pure $ showT $ (calcChecksum . calcWordsCount) input1
+  let 
+    answer1 = (calcChecksum . calcWordsCount) input1 
+
+    pairs = mkPairs (map T.unpack input1) -- convert input to a list of pairs to check for equality
+    matchingStates = map (\p -> runState (findMatch p) defaultState) pairs
+    answer2 = fmap (^. matchingChars) (find (\st -> st ^. diffCount == 1) (map snd matchingStates))
+  pure $ mconcat
+    [ showT answer1
+    , ", "
+    , T.pack $ fromMaybe "NO ANSWER" answer2
+    ] 
 
 calcChecksum :: HashMap Count Int -> Int
 calcChecksum hm =
@@ -32,18 +52,50 @@ calcChecksum hm =
 
 calcWordsCount :: [Text] -> HashMap Count Int
 calcWordsCount = foldl (\hm t -> (modifyOrAdd (calcCount t) (+1) 1 hm)) HM.empty
-
-calcCount :: Text -> Count
-calcCount x
-  | hasTwos && hasThrees = Both
-  | hasTwos = Two
-  | hasThrees = Three
-  | otherwise = None
   where
-    hasTwos = any (\(_, c) -> c == 2) countsMap
-    hasThrees = any (\(_, c) -> c == 3) countsMap
+    calcCount :: Text -> Count
+    calcCount x
+      | hasTwos && hasThrees = Both
+      | hasTwos = Two
+      | hasThrees = Three
+      | otherwise = None
+      where
+        hasTwos = any (\(_, c) -> c == 2) (countsMap x)
+        hasThrees = any (\(_, c) -> c == 3) (countsMap x)
+        countsMap s = HM.toList (fillMap (T.unpack s))
+        fillMap :: [Char] -> HashMap Char Integer
+        fillMap = foldl (\hm ch -> (modifyOrAdd ch (+1) 1 hm)) HM.empty 
 
-    countsMap = HM.toList (fillMap (T.unpack x))
+-- makes pairs of all non-equal  elements in a list.
+-- e.g. mkParis "abc" = [('a','b'),('a','c'),('b','a'),('b','c'),('c','a'),('c','b')] 
+mkPairs :: (Eq a) => [a] -> [(a, a)]
+mkPairs l = concatMap (\e -> mkPairs' e l) l 
+  where
+    mkPairs' :: (Eq a) => a -> [a] -> [(a,a)]
+    mkPairs' k (y:ys) = 
+      if k == y 
+        then 
+          mkPairs' k ys
+        else
+          (k, y) : mkPairs' k ys
+    mkPairs' _ [] = []
 
-    fillMap :: [Char] -> HashMap Char Int
-    fillMap = foldl (\hm ch -> (modifyOrAdd ch (+1) 1 hm)) HM.empty 
+findMatch :: ([Char], [Char]) -> State MatchState ()
+findMatch (a@(x:xs), b@(y:ys))
+  | length a /= length b = pure ()
+  | otherwise = do
+    st <- get
+    if st ^. diffCount > 1
+      then
+        pure ()
+      else do
+        if x /= y
+          then
+            put (st & diffCount %~ (+1))
+          else
+            put (st & matchingChars %~ (x :))
+        findMatch (xs, ys) 
+    pure ()
+    
+-- reverse chars since we append them from back to front
+findMatch _ = modify (\st -> st & matchingChars %~ reverse)
