@@ -36,3 +36,13 @@ mkPairs x = concatMap (\e -> mkPairs' e x)
     mkPairs' :: (Eq a) => a -> [a] -> [(a,a)]
     mkPairs' k (y:ys) = (k, y) : mkPairs' k ys
     mkPairs' _ [] = []
+
+-- groups entries by key using hashmap
+groupBy :: (Eq k, Hashable k) => (a -> k) -> [a] -> [[a]]
+groupBy selector xs = 
+  let m = foldl (\hm v -> modifyOrAdd (selector v) (v :) [v] hm) (HM.empty :: HashMap k [a]) xs
+  in 
+    map snd . HM.toList $ m
+
+-- toHashMap :: (Hashable k, v) => [a] -> (a -> k) -> (a -> v) -> HashMap k v
+-- toHashMap xs keySelector valueSelector = foldl (\hm v -> HM.insert (keySelector v) (valueSelector v))
