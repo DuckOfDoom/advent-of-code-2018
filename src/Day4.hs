@@ -20,10 +20,10 @@ day4 = do
     sortedRecords = (sort . map parseRecord) input1
     (_, (_, filledRecords)) = runState (fillGuardIds sortedRecords) (head sortedRecords ^. guardId, [])
     guardWithSleepySeconds = getLongestSleep filledRecords
-    sum = guardWithSleepySeconds ^. _1 * guardWithSleepySeconds ^. _2
+    result = guardWithSleepySeconds ^. _1 * guardWithSleepySeconds ^. _2
   print $ Utils.showT guardWithSleepySeconds
-  print $ Utils.showT sum
-  pure $ Utils.showT sum
+  -- print $ Utils.showT result
+  pure $ Utils.showT result
 
 fillGuardIds :: [Record] -> State (Int, [Record]) ()
 fillGuardIds (x:xs) = do
@@ -64,8 +64,7 @@ getLongestSleep xs =
 
     sleepyMinute :: Int
     sleepyMinute = let 
-      guardId = longestSleepingGuard ^. _1
-      ranges = sleepRangesByGuardId ! guardId
+      ranges = sleepRangesByGuardId ! (longestSleepingGuard ^. _1)
       minuteCounts = Utils.countOccurences ranges
       in 
         Utils.maxBy snd minuteCounts ^. _1
