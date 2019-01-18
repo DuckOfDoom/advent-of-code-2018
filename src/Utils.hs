@@ -44,10 +44,11 @@ groupBy selector xs =
   in 
     map snd . HM.toList $ m
 
-countOccurences :: (Eq a, Hashable a) => [[a]] -> [(a, Int)]
-countOccurences = HM.toList . foldl foldInner HM.empty
-    where
-      foldInner = foldl (\hm' x -> modifyOrAdd x (+1) 1 hm')
+countOccurences :: (Eq a, Hashable a) => [a] -> HashMap a Int
+countOccurences = foldl (\hm' x -> modifyOrAdd x (+1) 1 hm') HM.empty
 
+countOccurences2 :: (Eq a, Hashable a) => [[a]] -> HashMap a  Int
+countOccurences2 = foldl (\hm xs -> HM.unionWith (+) hm (countOccurences xs)) HM.empty
+      
 maxBy :: (Ord b) => (a -> b) -> [a] -> a
 maxBy selector = maximumBy (\a1 a2 -> selector a1 `compare` selector a2)

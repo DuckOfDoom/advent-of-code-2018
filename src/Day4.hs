@@ -19,11 +19,10 @@ day4 = do
   let
     sortedRecords = (sort . map parseRecord) input1
     (_, (_, filledRecords)) = runState (fillGuardIds sortedRecords) (head sortedRecords ^. guardId, [])
-    guardWithSleepySeconds = getLongestSleep filledRecords
-    result = guardWithSleepySeconds ^. _1 * guardWithSleepySeconds ^. _2
-  print $ Utils.showT guardWithSleepySeconds
-  -- print $ Utils.showT result
-  pure $ Utils.showT result
+    ((g1, s1), (g2, s2)) = getAnswers filledRecords
+    ans1 = g1 * s1
+    ans2 = g2 * s2
+  pure $ mconcat [Utils.showT ans1, ", ", Utils.showT ans2]
 
 fillGuardIds :: [Record] -> State (Int, [Record]) ()
 fillGuardIds (x:xs) = do
@@ -34,8 +33,8 @@ fillGuardIds (x:xs) = do
   fillGuardIds xs
 fillGuardIds [] = modify (fmap reverse)
 
-getLongestSleep :: [Record] -> (Int, Int)
-getLongestSleep xs =
+getAnswers :: [Record] -> ((Int, Int), (Int, Int))
+getAnswers xs =
   let
     toSeconds :: Record -> Int
     toSeconds r = (r ^. time . min * 60) + (r ^. time . sec)
@@ -56,17 +55,33 @@ getLongestSleep xs =
     sleepRangesByGuardId :: HashMap Int [[Int]]
     sleepRangesByGuardId = foldl (\hm (id, r, _) -> Utils.modifyOrAdd id (r :) [r] hm) HM.empty sleepTimes
 
+    guardIdToMinutesAsleep :: [(Int, [Int])]
+    guardIdToMinutesAsleep = HM.toList $ foldl (\hm (id, r, _) -> Utils.modifyOrAdd id (++ r) r hm) HM.empty sleepTimes
+
     totalTimeByGuardId :: [(Int, Int)] 
     totalTimeByGuardId = HM.toList $ foldl (\hm (id, _, t) -> Utils.modifyOrAdd id (+ t) t hm) HM.empty sleepTimes
  
     longestSleepingGuard :: (Int, Int)
     longestSleepingGuard = Utils.maxBy snd totalTimeByGuardId
 
-    sleepyMinute :: Int
+    sleepyMinute :: Int -- The most sleepy minute for a most sleeping guard
     sleepyMinute = let 
       ranges = sleepRangesByGuardId ! (longestSleepingGuard ^. _1)
-      minuteCounts = Utils.countOccurences ranges
+      minuteCounts = (HM.toList . Utils.countOccurences2) ranges
       in 
         Utils.maxBy snd minuteCounts ^. _1
+
+    answer1 :: (Int, Int)
+    answer1 = (longestSleepingGuard ^. _1, sleepyMinute)
+
+    answer2 :: (Int, Int)
+    answer2 = let 
+      guardToMostSleepyMinute :: (Int, [Int]) -> (Int, (Int, Int)) -- (guardId, (minute, count))
+      guardToMostSleepyMinute (id, ys) = (id, Utils.maxBy snd $ HM.toList $ Utils.countOccurences ys)
+
+      sleepiestGuardRecord :: (Int, (Int, Int))
+      sleepiestGuardRecord = Utils.maxBy (snd . snd) (map guardToMostSleepyMinute guardIdToMinutesAsleep)    
+      in 
+        (sleepiestGuardRecord ^. _1, sleepiestGuardRecord ^. (_2 . _1))
     in
-      (longestSleepingGuard ^. _1, sleepyMinute)
+      (answer1, answer2)
