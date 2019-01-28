@@ -3,26 +3,52 @@ where
 
 -- import Control.Lens
 import Data.Char (toLower)
+-- import Data.List (elemIndex)
 import Protolude hiding (head, min)
+import Control.Parallel.Strategies (parMap, rdeepseq)
+
+import qualified Prelude (readFile)
+import qualified Data.Char as Ch
 
 import Utils
 
-import qualified Data.Text as T
-
 day5 :: IO Text
 day5 = do
-  input1 <- readFile "input_day5_1.txt"
-  writeFile "out.txt" $ (T.pack . fullyReact . T.unpack) input1
-  _ <- Utils.executeWithTimer "process" $ (pure . length . process . T.unpack) input1
-  var2 <- Utils.executeWithTimer "fullyReact" $ (pure . length . fullyReact . T.unpack) input1
-  pure $ (Utils.showT var2)
+  input <- Prelude.readFile "input_day5_1.txt"
+  a1 <- answer1 input
+  a2 <- answer2 input
+  pure $ (mconcat . intersperse " " . map Utils.showT) [a1, a2]
+
+-- wordToNumbers :: [Char] -> [Char]
+-- wordToNumbers = map letterToNumber 
+--   where 
+--     letterToNumber :: Char -> Char
+--     letterToNumber ch = show $ fromMaybe 0 $ elemIndex ch ['a'..'z']
+
+answer1 :: [Char] -> IO Int
+answer1 input = Utils.executeWithTimer "Day5, answer1" $ (pure . length . fullyReact) input
+
+answer2 :: [Char] -> IO Int
+answer2 input = 
+  let 
+    results :: [[Char]] 
+    results = parMap rdeepseq (\ch -> fullyReactWithout ch input) ['A'..'Z']
+    in
+    Utils.executeWithTimer "Day5, answer2" $
+      (pure . length . minimumBy (\a b -> length a `compare` length b)) results
+
+fullyReactWithout :: Char -> [Char] -> [Char]
+fullyReactWithout toRemove xs = 
+  fullyReact $ filter (\c -> c /= Ch.toUpper toRemove && c /= Ch.toLower toRemove) xs
+
+------------------------------------------------------------------------------------------------
 
 fullyReact :: [Char] -> [Char]
 fullyReact xs = react (length xs) xs
   where
     react prevLength ys =
       let
-        current = process2 ys
+        current = process ys
         currLength = length current
         in
         -- trace (Utils.showT prevLength) $
@@ -30,41 +56,20 @@ fullyReact xs = react (length xs) xs
           then current
           else react currLength current
 
-test = Utils.executeWithTimer "derp" $ (pure . fullyReact) "dabAcCaCBAcCcaDA"
+------------------------------------------------------------------------------------------------
 
 process :: [Char] -> [Char]
-process xs = let
-  process' vals = runState (processOnce vals) (0, [])
-  (_, (count, processed)) = process' xs
-  in if count /= 0 then process processed else processed
+process (x1:x2:x3:xs)
+  | isPolar x1 x2 = process (x3:xs)
+  | isPolar x2 x3 = process (x1:xs)
+  | otherwise = x1 : process (x2:x3:xs)
 
--- This can be sped up if we scan by 4 values and collapse middle two.
--- But the function might be ugly
-processOnce :: [Char] -> State (Int, [Char]) [Char]
-processOnce (x:y:xs) = do
-  (count, values) <- get
-  if isPolar x y
-    then put (count + 1, values) >> processOnce xs
-    else put (count, x:values) >> processOnce (y:xs)
-processOnce [x] = do
-  (count, values) <- get
-  put (count, reverse $ x:values)
-  pure []
+process (x1:x2:xs)
+  | isPolar x1 x2 = process xs
+  | otherwise = x1:x2:process xs
 
-processOnce [] = panic "Empty list, dude!"
-
-process2 :: [Char] -> [Char]
-process2 (x1:x2:x3:xs)
-  | isPolar x1 x2 = process2 (x3:xs)
-  | isPolar x2 x3 = process2 (x1:xs)
-  | otherwise = x1 : process2 (x2:x3:xs)
-
-process2 (x1:x2:xs)
-  | isPolar x1 x2 = process2 xs
-  | otherwise = x1:x2:process2 xs
-
-process2 [x] = [x]
-process2 [] = []
+process [x] = [x]
+process [] = []
 
 isPolar :: Char -> Char -> Bool
 isPolar a b
